@@ -42,19 +42,6 @@ The technique is divided into several critical steps:
 * **Penetration testing**: Evaluating defenses against evasion techniques
 * **Defense development**: Creating detection systems for this technique
 
-## Repository Structure
-
-```
-ManualMapInjection/
-├── src/
-│   ├── main.cpp           # Source Code
-├── docs/                  
-│   ├── technique_ES.md    # Detailed explanation in Spanish
-│   └── technique_EN.md    # Detailed explanation in English
-├── README.md              # README English
-└── README_ES.md           # README Spanish
-```
-
 ## Building and Usage
 
 ### Prerequisites
