@@ -1,4 +1,4 @@
-# Manual Map Injection
+# AnotherManualMap
 Explanation and Proof of Concept of the Manual Map Injection (Windows) technique, commonly used by malware and game hackers to bypass security systems
 
 A complete explanation of the technique is available in
