@@ -3,7 +3,7 @@ Explanation and Proof of Concept of the Manual Map Injection (Windows) technique
 
 A complete explanation of the technique is available in
 <p align="center">
-  <a href="docs/technique_ES.md">Español</a> | <a href="docs/technique_EN.md">English</a>
+  <a href="explanation/Español.md">Español</a> | <a href="explanation/English.md">English</a>
 </p>
 
 ## What is Manual Map Injection?
