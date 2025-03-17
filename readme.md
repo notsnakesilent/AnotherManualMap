@@ -6,6 +6,8 @@ A complete explanation of the technique is available in
   <a href="explanation/Español.md">Español</a> | <a href="explanation/English.md">English</a>
 </p>
 
+![image](https://github.com/user-attachments/assets/487e7d01-4249-4f28-926e-2aba43820eea)
+
 ## What is Manual Map Injection?
 
 Manual Map Injection is a sophisticated **DLL injection technique** widely used by modern malware and game cheats to:
@@ -56,12 +58,12 @@ The technique is divided into several critical steps:
 
 ### Usage
 ```
-ManualMapInjection.exe [target_process] [dll_path]
+AnotherManualMap.exe [target_process] [dll_path]
 ```
 
 Example:
 ```
-ManualMapInjection.exe notepad.exe C:\path\to\your.dll
+AnotherManualMap.exe notepad.exe C:\path\to\your.dll
 ```
 
 ## Disclaimer
