@@ -31,7 +31,7 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
 
     std::streampos FileSize = File.tellg();
     BYTE* pSrcData = new BYTE[static_cast<UINT_PTR>(FileSize)];
-    
+
     File.seekg(0, std::ios::beg);
     File.read(reinterpret_cast<char*>(pSrcData), FileSize);
     File.close();
@@ -52,8 +52,8 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
         return false;
     }
 
-    LPVOID pTargetBase = VirtualAllocEx(hProcess, nullptr, pNTHeader->OptionalHeader.SizeOfImage, 
-                                         MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    LPVOID pTargetBase = VirtualAllocEx(hProcess, nullptr, pNTHeader->OptionalHeader.SizeOfImage,
+        MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (!pTargetBase)
     {
         cout << "No se pudo asignar memoria en el proceso objetivo" << endl;
@@ -71,10 +71,10 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
     {
         if (pSectionHeader->SizeOfRawData)
         {
-            if (!WriteProcessMemory(hProcess, 
-                                   reinterpret_cast<BYTE*>(pTargetBase) + pSectionHeader->VirtualAddress,
-                                   pSrcData + pSectionHeader->PointerToRawData,
-                                   pSectionHeader->SizeOfRawData, nullptr))
+            if (!WriteProcessMemory(hProcess,
+                reinterpret_cast<BYTE*>(pTargetBase) + pSectionHeader->VirtualAddress,
+                pSrcData + pSectionHeader->PointerToRawData,
+                pSectionHeader->SizeOfRawData, nullptr))
             {
                 cout << "No se pudo escribir la seccion " << i << endl;
                 VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
@@ -84,8 +84,8 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
         }
     }
 
-    if (!WriteProcessMemory(hProcess, pTargetBase, pSrcData, 
-                           pNTHeader->OptionalHeader.SizeOfHeaders, nullptr))
+    if (!WriteProcessMemory(hProcess, pTargetBase, pSrcData,
+        pNTHeader->OptionalHeader.SizeOfHeaders, nullptr))
     {
         cout << "No se pudieron escribir los PE headers" << endl;
         VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
@@ -93,9 +93,9 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
         return false;
     }
 
-    BYTE* pShellcode = reinterpret_cast<BYTE*>(VirtualAllocEx(hProcess, nullptr, 
-                                               4096, MEM_COMMIT | MEM_RESERVE, 
-                                               PAGE_EXECUTE_READWRITE));
+    BYTE* pShellcode = reinterpret_cast<BYTE*>(VirtualAllocEx(hProcess, nullptr,
+        4096, MEM_COMMIT | MEM_RESERVE,
+        PAGE_EXECUTE_READWRITE));
     if (!pShellcode)
     {
         cout << "No se pudo asignar memoria para shellcode" << endl;
@@ -113,8 +113,8 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
         return false;
     }
 
-    if (!WriteProcessMemory(hProcess, pShellcode + sizeof(data), ShellCode, 
-                           0x1000 - sizeof(data), nullptr))
+    if (!WriteProcessMemory(hProcess, pShellcode + sizeof(data), ShellCode,
+        0x1000 - sizeof(data), nullptr))
     {
         cout << "No se pudo escribir el shellcode" << endl;
         VirtualFreeEx(hProcess, pTargetBase, 0, MEM_RELEASE);
@@ -123,9 +123,9 @@ bool ManualMap(HANDLE hProcess, const char* szDllFile)
         return false;
     }
 
-    HANDLE hThread = CreateRemoteThread(hProcess, nullptr, 0, 
-                                       reinterpret_cast<LPTHREAD_START_ROUTINE>(pShellcode + sizeof(data)), 
-                                       pShellcode, 0, nullptr);
+    HANDLE hThread = CreateRemoteThread(hProcess, nullptr, 0,
+        reinterpret_cast<LPTHREAD_START_ROUTINE>(pShellcode + sizeof(data)),
+        pShellcode, 0, nullptr);
     if (!hThread)
     {
         cout << "No se pudo crear el hilo remoto" << endl;
@@ -148,17 +148,20 @@ DWORD GetProcessId(const char* processName)
 {
     DWORD pid = 0;
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    
+
     if (snapshot != INVALID_HANDLE_VALUE)
     {
         PROCESSENTRY32 processEntry;
         processEntry.dwSize = sizeof(processEntry);
-        
+
         if (Process32First(snapshot, &processEntry))
         {
             do
             {
-                if (!strcmp(processEntry.szExeFile, processName))
+                WCHAR wideProcessName[MAX_PATH];
+                MultiByteToWideChar(CP_ACP, 0, processName, -1, wideProcessName, MAX_PATH);
+
+                if (!wcscmp(processEntry.szExeFile, wideProcessName))
                 {
                     pid = processEntry.th32ProcessID;
                     break;
@@ -179,11 +182,11 @@ void __stdcall ShellCode(MANUAL_MAPPING_DATA* pData)
     auto _GetProcAddress = reinterpret_cast<f_GetProcAddress>(pData->pGetProcAddress);
     auto _DllBase = reinterpret_cast<BYTE*>(pData->pbase);
 
-    auto _pOptionalHeader = &reinterpret_cast<PIMAGE_NT_HEADERS>(_DllBase + 
-                            reinterpret_cast<PIMAGE_DOS_HEADER>(_DllBase)->e_lfanew)->OptionalHeader;
+    auto _pOptionalHeader = &reinterpret_cast<PIMAGE_NT_HEADERS>(_DllBase +
+        reinterpret_cast<PIMAGE_DOS_HEADER>(_DllBase)->e_lfanew)->OptionalHeader;
 
-    auto _pImportDescriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(_DllBase + 
-                             _pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+    auto _pImportDescriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(_DllBase +
+        _pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
     if (_pImportDescriptor->Name)
     {
@@ -192,27 +195,26 @@ void __stdcall ShellCode(MANUAL_MAPPING_DATA* pData)
             char* szMod = reinterpret_cast<char*>(_DllBase + _pImportDescriptor->Name);
             HINSTANCE hDll = _LoadLibraryA(szMod);
 
-            PIMAGE_THUNK_DATA pThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(_DllBase + 
-                                     _pImportDescriptor->FirstThunk);
+            PIMAGE_THUNK_DATA pThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(_DllBase +
+                _pImportDescriptor->FirstThunk);
 
             if (_pImportDescriptor->OriginalFirstThunk)
             {
-                PIMAGE_THUNK_DATA pOriginalThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(_DllBase + 
-                                                _pImportDescriptor->OriginalFirstThunk);
+                PIMAGE_THUNK_DATA pOriginalThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(_DllBase +
+                    _pImportDescriptor->OriginalFirstThunk);
 
                 while (pOriginalThunk->u1.AddressOfData)
                 {
                     if (pOriginalThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG)
                     {
                         UINT_PTR ordinal = pOriginalThunk->u1.Ordinal & 0xffff;
-                        pThunk->u1.Function = reinterpret_cast<UINT_PTR>(_GetProcAddress(hDll, 
-                                            reinterpret_cast<char*>(ordinal)));
+                        pThunk->u1.Function = reinterpret_cast<UINT_PTR>(_GetProcAddress(hDll,
+                            reinterpret_cast<char*>(ordinal)));
                     }
                     else
                     {
-                        // Importación por nombre
-                        PIMAGE_IMPORT_BY_NAME pImport = reinterpret_cast<PIMAGE_IMPORT_BY_NAME>(_DllBase + 
-                                                     pOriginalThunk->u1.AddressOfData);
+                        PIMAGE_IMPORT_BY_NAME pImport = reinterpret_cast<PIMAGE_IMPORT_BY_NAME>(_DllBase +
+                            pOriginalThunk->u1.AddressOfData);
                         pThunk->u1.Function = reinterpret_cast<UINT_PTR>(_GetProcAddress(hDll, pImport->Name));
                     }
                     ++pOriginalThunk;
@@ -225,10 +227,10 @@ void __stdcall ShellCode(MANUAL_MAPPING_DATA* pData)
 
     if (_pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
     {
-        auto _pRelocData = reinterpret_cast<PIMAGE_BASE_RELOCATION>(_DllBase + 
-                         _pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
+        auto _pRelocData = reinterpret_cast<PIMAGE_BASE_RELOCATION>(_DllBase +
+            _pOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);
         UINT_PTR delta = reinterpret_cast<UINT_PTR>(_DllBase) - _pOptionalHeader->ImageBase;
-        
+
         while (_pRelocData->VirtualAddress)
         {
             UINT amountOfEntries = (_pRelocData->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(WORD);
@@ -238,13 +240,13 @@ void __stdcall ShellCode(MANUAL_MAPPING_DATA* pData)
             {
                 if (pRelativeInfo[i] >> 12 == IMAGE_REL_BASED_HIGHLOW)
                 {
-                    UINT_PTR* pPatch = reinterpret_cast<UINT_PTR*>(_DllBase + 
-                                     _pRelocData->VirtualAddress + (pRelativeInfo[i] & 0xfff));
+                    UINT_PTR* pPatch = reinterpret_cast<UINT_PTR*>(_DllBase +
+                        _pRelocData->VirtualAddress + (pRelativeInfo[i] & 0xfff));
                     *pPatch += delta;
                 }
             }
-            _pRelocData = reinterpret_cast<PIMAGE_BASE_RELOCATION>(reinterpret_cast<BYTE*>(_pRelocData) + 
-                        _pRelocData->SizeOfBlock);
+            _pRelocData = reinterpret_cast<PIMAGE_BASE_RELOCATION>(reinterpret_cast<BYTE*>(_pRelocData) +
+                _pRelocData->SizeOfBlock);
         }
     }
 
@@ -255,24 +257,25 @@ void __stdcall ShellCode(MANUAL_MAPPING_DATA* pData)
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    // Nombre del proceso objetivo
-    char processName[256];
-    cout << "Ingresa el proceso objetivo: ";
-    cin >> processName;
+    if (argc != 3)
+    {
+        cout << "Uso: ManualMapInjection.exe [target_process] [dll_path]" << endl;
+        return 1;
+    }
 
-    char dllPath[MAX_PATH];
-    cout << "Ingresa la ruta completa de la DLL: ";
-    cin >> dllPath;
-    
+    const char* processName = argv[1];
+    const char* dllPath = argv[2];
+
+
     DWORD pid = GetProcessId(processName);
     if (!pid)
     {
         cout << "No se pudo encontrar el proceso " << processName << endl;
         return 1;
     }
-    
+
     cout << "Proceso encontrado. PID: " << pid << endl;
 
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
@@ -281,18 +284,16 @@ int main()
         cout << "Error: No se pudo abrir el proceso. Código de error: " << GetLastError() << endl;
         return 1;
     }
-    
 
     if (ManualMap(hProcess, dllPath))
     {
-        cout << "Inyección completada exitosamente" << endl;
+        cout << "Inyeccion completada exitosamente" << endl;
     }
     else
     {
-        cout << "La inyección falló" << endl;
+        cout << "La inyección fallo" << endl;
     }
-    
+
     CloseHandle(hProcess);
-    system("pause");
     return 0;
 }
